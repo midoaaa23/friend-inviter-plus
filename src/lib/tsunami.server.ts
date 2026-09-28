@@ -108,6 +108,14 @@ export async function verifyInitData(initData: string): Promise<TelegramUser> {
 
 export const REFERRAL_REWARD = 500;
 
+/** Developer accounts: unlimited play, ads auto-rewarded. */
+export function isDevId(telegramId: string) {
+  const ids = (process.env["DEV_TELEGRAM_IDS"] ?? "")
+    .split(/[\s,]+/)
+    .filter(Boolean);
+  return ids.includes(String(telegramId));
+}
+
 export function jsonError(message: string, status = 400) {
   return Response.json({ error: message }, { status });
 }
