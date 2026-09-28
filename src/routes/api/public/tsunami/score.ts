@@ -36,12 +36,13 @@ export const Route = createFileRoute("/api/public/tsunami/score")({
           `;
 
           const rows = (await sql`
-            SELECT coins, best_score FROM players WHERE telegram_id = ${user.id}::bigint
-          `) as Array<{ coins: string; best_score: number }>;
+            SELECT coins, best_score, points FROM players WHERE telegram_id = ${user.id}::bigint
+          `) as Array<{ coins: string; best_score: number; points: number }>;
 
           return Response.json({
             coins: Number(rows[0]?.coins ?? 0),
             bestScore: Number(rows[0]?.best_score ?? 0),
+            points: Number(rows[0]?.points ?? 0),
           });
         } catch (error) {
           console.error("tsunami/score failed", error);

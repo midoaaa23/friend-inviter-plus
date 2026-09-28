@@ -3,6 +3,7 @@ import {
   REFERRAL_REWARD,
   ensureSchema,
   getSql,
+  isDevId,
   jsonError,
   verifyInitData,
 } from "@/lib/tsunami.server";
@@ -75,16 +76,25 @@ export const Route = createFileRoute("/api/public/tsunami/sync")({
             }
           } else {
             await sql`
-              UPDATE players SET username = ${user.name}, updated_at = now()
+              UPDATE players
+              SET username = ${user.name},
+                  first_name = COALESCE(NULLIF(first_name, ''), ${user.name}),
+                  updated_at = now()
               WHERE telegram_id = ${user.id}::bigint
             `;
           }
 
+
+          const dev = isDevId(user.id);
+          if (dev) {
+            await sql`UPDATE players SET is_dev = true WHERE telegram_id = ${user.id}::bigint`;
+          }
+
           const rows = (await sql`
-            SELECT p.coins, p.best_score,
+            SELECT p.coins, p.best_score, p.points,
               (SELECT count(*) FROM referrals r WHERE r.referrer_id = ${user.id}) AS invites
             FROM players p WHERE p.telegram_id = ${user.id}::bigint
-          `) as Array<{ coins: string; best_score: number; invites: string }>;
+          `) as Array<{ coins: string; best_score: number; points: number; invites: string }>;
 
           const row = rows[0];
           return Response.json({
@@ -92,6 +102,8 @@ export const Route = createFileRoute("/api/public/tsunami/sync")({
             name: user.name,
             coins: Number(row?.coins ?? 0),
             bestScore: Number(row?.best_score ?? 0),
+            points: Number(row?.points ?? 0),
+            isDev: dev,
             invites: Number(row?.invites ?? 0),
             referralRewarded,
           });
