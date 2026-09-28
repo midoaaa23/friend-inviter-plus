@@ -219,6 +219,7 @@
     (function() {
         //Initialization
         var game = new gdjs.RuntimeGame(gdjs.projectData, gdjs.runtimeGameOptions);
+        window.__tsunamiGame = game; // used by tsunami.js (developer mode)
 
         //Create a renderer
         game.getRenderer().createStandardCanvas(document.body);
