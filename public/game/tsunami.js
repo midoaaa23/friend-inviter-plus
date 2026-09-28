@@ -3,6 +3,8 @@
  * - Monetag rewarded ads only (zone 11884483). No other ad network.
  * - Telegram WebApp login.
  * - Neon-backed leaderboard + coins + referrals.
+ * - Coins balance + invite button live INSIDE the leaderboard overlay (not on the play screen).
+ * - Developer mode: unlimited hearts, ads auto-rewarded.
  */
 (function () {
   "use strict";
@@ -11,11 +13,13 @@
   var MONETAG_FN = "show_" + MONETAG_ZONE;
   var BOT_USERNAME = "tsunamy_game_bot";
   var API = location.origin + "/api/public/tsunami";
+  var DEV_IDS = ["6672432476"];
 
   var state = {
     initData: "",
     user: null,
     profile: null,
+    isDev: false,
     ready: false,
   };
 
@@ -36,6 +40,7 @@
     var u = w.initDataUnsafe && w.initDataUnsafe.user;
     if (u) {
       state.user = { id: String(u.id), name: u.username || u.first_name || "Player" };
+      if (DEV_IDS.indexOf(state.user.id) !== -1) enableDevMode();
     }
   }
 
@@ -66,6 +71,7 @@
     return post("/sync", { initData: state.initData, ref: referralCode() })
       .then(function (profile) {
         state.profile = profile;
+        if (profile.isDev) enableDevMode();
         renderCoins();
         if (profile.referralRewarded) {
           toast("🎉 حصلت على 500 عملة من دعوة صديقك!");
@@ -82,7 +88,11 @@
     if (!state.initData || !score) return Promise.resolve(null);
     return post("/score", { initData: state.initData, score: Number(score) || 0 })
       .then(function (data) {
-        if (state.profile) state.profile.coins = data.coins;
+        if (state.profile) {
+          state.profile.coins = data.coins;
+          state.profile.bestScore = data.bestScore;
+          state.profile.points = data.points;
+        }
         renderCoins();
         return data;
       })
@@ -90,6 +100,26 @@
         console.warn("score failed", err);
         return null;
       });
+  }
+
+  /* ---------------- Developer mode ---------------- */
+
+  var devTimer = null;
+
+  function enableDevMode() {
+    if (state.isDev) return;
+    state.isDev = true;
+    devTimer = setInterval(function () {
+      try {
+        var game = window.__tsunamiGame;
+        if (!game) return;
+        var hearts = game.getVariables().get("CurrentHearts");
+        if (hearts && hearts.getAsNumber() < 50) hearts.setNumber(999);
+      } catch (e) {}
+    }, 1000);
+    setTimeout(function () {
+      toast("👑 وضع المطور مُفعّل: لعب بلا توقف وبدون إعلانات");
+    }, 1500);
   }
 
   /* ---------------- Monetag rewarded ads ---------------- */
@@ -121,6 +151,7 @@
 
   /** Resolves true only when the rewarded ad was actually watched to the end. */
   function showRewarded() {
+    if (state.isDev) return Promise.resolve(true);
     return loadMonetag()
       .then(function () {
         return window[MONETAG_FN]();
@@ -168,7 +199,7 @@
   }
 
   function renderCoins() {
-    if (!coinsEl) return;
+    if (!coinsEl || !coinsEl.isConnected) return;
     var coins = state.profile ? state.profile.coins : 0;
     coinsEl.textContent = "🪙 " + coins;
   }
@@ -194,6 +225,68 @@
     else window.open(url, "_blank");
   }
 
+  function myCard() {
+    var wrap = document.createElement("div");
+    css(wrap, {
+      width: "100%",
+      maxWidth: "420px",
+      background: "linear-gradient(180deg,rgba(255,210,74,0.18),rgba(255,210,74,0.07))",
+      border: "1px solid rgba(255,210,74,0.45)",
+      borderRadius: "14px",
+      padding: "12px 14px",
+      marginBottom: "14px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "10px",
+    });
+
+    var top = document.createElement("div");
+    css(top, { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" });
+
+    var who = document.createElement("div");
+    var name = state.profile ? state.profile.name : state.user ? state.user.name : "ضيف";
+    who.textContent = "👤 " + name + (state.isDev ? " 👑" : "");
+    css(who, { fontWeight: "700", color: "#ffd24a" });
+
+    coinsEl = document.createElement("div");
+    css(coinsEl, {
+      background: "rgba(12,16,32,0.75)",
+      color: "#ffd24a",
+      padding: "6px 12px",
+      borderRadius: "999px",
+      fontWeight: "700",
+    });
+    renderCoins();
+
+    top.appendChild(who);
+    top.appendChild(coinsEl);
+
+    var pts = document.createElement("div");
+    var score = state.profile ? state.profile.bestScore : 0;
+    pts.textContent = "⭐ نقاطك: " + score;
+    css(pts, { fontWeight: "600" });
+
+    var inviteBtn = document.createElement("button");
+    inviteBtn.textContent = "👥 دعوة صديق (+500)";
+    css(inviteBtn, {
+      background: "linear-gradient(180deg,#4f8cff,#2f5ed6)",
+      color: "#fff",
+      border: "none",
+      padding: "11px 16px",
+      borderRadius: "999px",
+      fontWeight: "700",
+      fontSize: "15px",
+      width: "100%",
+      boxShadow: "0 4px 14px rgba(0,0,0,0.4)",
+    });
+    inviteBtn.onclick = invite;
+
+    wrap.appendChild(top);
+    wrap.appendChild(pts);
+    wrap.appendChild(inviteBtn);
+    return wrap;
+  }
+
   function showLeaderboard() {
     var overlay = document.createElement("div");
     css(overlay, {
@@ -214,6 +307,8 @@
     title.textContent = "🏆 لوحة الصدارة";
     css(title, { margin: "0 0 16px", color: "#ffd24a" });
     overlay.appendChild(title);
+
+    overlay.appendChild(myCard());
 
     var list = document.createElement("div");
     list.textContent = "جارٍ التحميل...";
@@ -238,6 +333,9 @@
     overlay.appendChild(close);
     document.body.appendChild(overlay);
 
+    // Refresh my own saved name/points from the database each time it opens.
+    sync();
+
     fetch(API + "/leaderboard")
       .then(function (r) {
         return r.json();
@@ -249,7 +347,9 @@
           list.textContent = "لا توجد نتائج بعد.";
           return;
         }
+        var myId = state.user ? state.user.id : null;
         players.forEach(function (p, i) {
+          var mine = myId && String(p.id) === myId;
           var row = document.createElement("div");
           css(row, {
             display: "flex",
@@ -258,10 +358,15 @@
             padding: "10px 12px",
             marginBottom: "6px",
             borderRadius: "10px",
-            background: i < 3 ? "rgba(255,210,74,0.15)" : "rgba(255,255,255,0.06)",
+            background: mine
+              ? "rgba(79,140,255,0.28)"
+              : i < 3
+                ? "rgba(255,210,74,0.15)"
+                : "rgba(255,255,255,0.06)",
+            outline: mine ? "1px solid rgba(79,140,255,0.8)" : "none",
           });
           var left = document.createElement("span");
-          left.textContent = i + 1 + ". " + p.name;
+          left.textContent = i + 1 + ". " + p.name + (mine ? " (أنت)" : "");
           var right = document.createElement("span");
           right.textContent = p.score + " | 🪙 " + p.coins;
           row.appendChild(left);
@@ -274,57 +379,10 @@
       });
   }
 
-  function buildHud() {
-    var hud = document.createElement("div");
-    css(hud, {
-      position: "fixed",
-      top: "10px",
-      left: "10px",
-      right: "10px",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      gap: "8px",
-      zIndex: 99999,
-      pointerEvents: "none",
-      font: "700 14px/1 system-ui, sans-serif",
-    });
-
-    coinsEl = document.createElement("div");
-    css(coinsEl, {
-      background: "rgba(12,16,32,0.8)",
-      color: "#ffd24a",
-      padding: "8px 14px",
-      borderRadius: "999px",
-      pointerEvents: "auto",
-    });
-    renderCoins();
-
-    var inviteBtn = document.createElement("button");
-    inviteBtn.textContent = "👥 دعوة أصدقاء (+500)";
-    css(inviteBtn, {
-      background: "linear-gradient(180deg,#4f8cff,#2f5ed6)",
-      color: "#fff",
-      border: "none",
-      padding: "10px 16px",
-      borderRadius: "999px",
-      fontWeight: "700",
-      fontSize: "14px",
-      pointerEvents: "auto",
-      boxShadow: "0 4px 14px rgba(0,0,0,0.4)",
-    });
-    inviteBtn.onclick = invite;
-
-    hud.appendChild(coinsEl);
-    hud.appendChild(inviteBtn);
-    document.body.appendChild(hud);
-  }
-
   /* ---------------- boot ---------------- */
 
   function boot() {
     initTelegram();
-    buildHud();
     sync();
     state.ready = true;
   }
@@ -344,6 +402,9 @@
     showLeaderboard: showLeaderboard,
     invite: invite,
     sync: sync,
+    isDev: function () {
+      return state.isDev;
+    },
     getUser: function () {
       return state.user;
     },
