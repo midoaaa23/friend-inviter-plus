@@ -17,7 +17,7 @@ export const Route = createFileRoute("/api/public/tsunami/leaderboard")({
             LIMIT 50
           `) as Array<{ telegram_id: string; name: string; best_score: number; coins: string }>;
 
-          return Response.json({
+          return cors(Response.json({
             players: rows.map((r) => ({
               id: String(r.telegram_id),
               name: r.name,
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/api/public/tsunami/leaderboard")({
           });
         } catch (error) {
           console.error("tsunami/leaderboard failed", error);
-          return jsonError((error as Error).message, 500);
+          return cors(jsonError((error as Error).message, 500);
         }
       },
     },

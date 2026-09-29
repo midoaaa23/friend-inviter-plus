@@ -16,14 +16,14 @@ export const Route = createFileRoute("/api/public/tsunami/sync")({
         try {
           body = (await request.json()) as { initData?: string; ref?: string };
         } catch {
-          return jsonError("Invalid body");
+          return cors(jsonError("Invalid body");
         }
 
         let user;
         try {
           user = await verifyInitData(body.initData ?? "");
         } catch (error) {
-          return jsonError((error as Error).message, 401);
+          return cors(jsonError((error as Error).message, 401);
         }
 
         try {
@@ -97,7 +97,7 @@ export const Route = createFileRoute("/api/public/tsunami/sync")({
           `) as Array<{ coins: string; best_score: number; points: number; invites: string }>;
 
           const row = rows[0];
-          return Response.json({
+          return cors(Response.json({
             id: user.id,
             name: user.name,
             coins: Number(row?.coins ?? 0),
@@ -109,7 +109,7 @@ export const Route = createFileRoute("/api/public/tsunami/sync")({
           });
         } catch (error) {
           console.error("tsunami/sync failed", error);
-          return jsonError((error as Error).message, 500);
+          return cors(jsonError((error as Error).message, 500);
         }
       },
     },

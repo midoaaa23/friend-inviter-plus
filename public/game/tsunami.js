@@ -12,7 +12,7 @@
   var MONETAG_ZONE = "11884483";
   var MONETAG_FN = "show_" + MONETAG_ZONE;
   var BOT_USERNAME = "tsunamy_game_bot";
-  var API = location.origin + "/api/public/tsunami";
+  var API = (location.hostname.indexOf("lovable.app") !== -1 || location.hostname === "localhost" ? location.origin : "https://friend-inviter-plus.lovable.app") + "/api/public/tsunami";
   var DEV_IDS = ["6672432476"];
 
   var state = {
