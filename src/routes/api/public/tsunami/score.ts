@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ensureSchema, getSql, jsonError, verifyInitData } from "@/lib/tsunami.server";
+import { ensureSchema, getSql, jsonError, verifyInitData, preflight, withCors } from "@/lib/tsunami.server";
 
 export const Route = createFileRoute("/api/public/tsunami/score")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
+      OPTIONS: preflight,
+      POST: withCors(async ({ request }) => {
         let body: { initData?: string; score?: number };
         try {
           body = (await request.json()) as { initData?: string; score?: number };
@@ -48,7 +49,7 @@ export const Route = createFileRoute("/api/public/tsunami/score")({
           console.error("tsunami/score failed", error);
           return jsonError((error as Error).message, 500);
         }
-      },
+      }),
     },
   },
 });

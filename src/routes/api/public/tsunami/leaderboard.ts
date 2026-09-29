@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ensureSchema, getSql, jsonError } from "@/lib/tsunami.server";
+import { ensureSchema, getSql, jsonError, preflight, withCors } from "@/lib/tsunami.server";
 
 export const Route = createFileRoute("/api/public/tsunami/leaderboard")({
   server: {
     handlers: {
-      GET: async () => {
+      OPTIONS: preflight,
+      GET: withCors(async () => {
         try {
           await ensureSchema();
           const sql = getSql();
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/api/public/tsunami/leaderboard")({
           console.error("tsunami/leaderboard failed", error);
           return jsonError((error as Error).message, 500);
         }
-      },
+      }),
     },
   },
 });
