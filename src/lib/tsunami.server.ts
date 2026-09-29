@@ -129,8 +129,9 @@ const CORS = {
 export const preflight = async () => new Response(null, { status: 204, headers: CORS });
 
 /** Allows the game to be hosted on other domains (e.g. Vercel). */
-export function withCors<A>(fn: (args: A) => Promise<Response>) {
-  return async (args: A) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function withCors(fn: (args: any) => Promise<Response>) {
+  return async (args: any) => {
     const res = await fn(args);
     const headers = new Headers(res.headers);
     for (const [k, v] of Object.entries(CORS)) headers.set(k, v);
