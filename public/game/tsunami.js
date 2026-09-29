@@ -105,6 +105,8 @@
   /* ---------------- Developer mode ---------------- */
 
   var devTimer = null;
+  var lastDevScore = 0;
+  var lastDevSent = 0;
 
   function enableDevMode() {
     if (state.isDev) return;
@@ -115,6 +117,12 @@
         if (!game) return;
         var hearts = game.getVariables().get("CurrentHearts");
         if (hearts && hearts.getAsNumber() < 50) hearts.setNumber(999);
+        var total = game.getVariables().get("TotalScore").getAsNumber();
+        if (total > lastDevScore && Date.now() - lastDevSent > 5000) {
+          lastDevScore = total;
+          lastDevSent = Date.now();
+          submitScore(total);
+        }
       } catch (e) {}
     }, 1000);
     setTimeout(function () {
