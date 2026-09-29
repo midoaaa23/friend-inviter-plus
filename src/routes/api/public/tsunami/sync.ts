@@ -6,12 +6,15 @@ import {
   isDevId,
   jsonError,
   verifyInitData,
+  preflight,
+  withCors,
 } from "@/lib/tsunami.server";
 
 export const Route = createFileRoute("/api/public/tsunami/sync")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
+      OPTIONS: preflight,
+      POST: withCors(async ({ request }) => {
         let body: { initData?: string; ref?: string };
         try {
           body = (await request.json()) as { initData?: string; ref?: string };
@@ -111,7 +114,7 @@ export const Route = createFileRoute("/api/public/tsunami/sync")({
           console.error("tsunami/sync failed", error);
           return jsonError((error as Error).message, 500);
         }
-      },
+      }),
     },
   },
 });

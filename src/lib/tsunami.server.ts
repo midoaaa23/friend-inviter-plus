@@ -119,3 +119,21 @@ export function isDevId(telegramId: string) {
 export function jsonError(message: string, status = 400) {
   return Response.json({ error: message }, { status });
 }
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+export const preflight = async () => new Response(null, { status: 204, headers: CORS });
+
+/** Allows the game to be hosted on other domains (e.g. Vercel). */
+export function withCors<A>(fn: (args: A) => Promise<Response>) {
+  return async (args: A) => {
+    const res = await fn(args);
+    const headers = new Headers(res.headers);
+    for (const [k, v] of Object.entries(CORS)) headers.set(k, v);
+    return new Response(res.body, { status: res.status, headers });
+  };
+}
