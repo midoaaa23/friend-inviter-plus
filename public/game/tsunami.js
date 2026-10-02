@@ -387,11 +387,15 @@
       });
   }
 
-  /* ---------------- Daily hearts refill (every 24h) ---------------- */
+  /* ---------------- Daily hearts refill (new calendar day) ---------------- */
 
   var MAX_HEARTS = 5;
-  var REFILL_MS = 24 * 60 * 60 * 1000;
-  var REFILL_KEY = "tsunami_hearts_refill_at";
+  var REFILL_KEY = "tsunami_hearts_day";
+
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+  }
 
   function refillTick() {
     if (state.isDev) return;
@@ -402,24 +406,23 @@
       var hearts = vars.get("CurrentHearts");
       if (!hearts) return;
       var n = hearts.getAsNumber();
-      var now = Date.now();
-      var at = Number(localStorage.getItem(REFILL_KEY) || 0);
+      var today = todayStr();
+      var day = localStorage.getItem(REFILL_KEY);
       if (n >= MAX_HEARTS) {
-        if (at) localStorage.removeItem(REFILL_KEY);
+        if (day !== today) localStorage.setItem(REFILL_KEY, today);
         return;
       }
-      if (!at) {
-        localStorage.setItem(REFILL_KEY, String(now + REFILL_MS));
-        return;
-      }
-      if (now >= at) {
+      // Hearts are below max: refill automatically when a new day starts
+      if (day && day !== today) {
         hearts.setNumber(MAX_HEARTS);
         try {
           var userKey = vars.getFromIndex(7).getAsString();
           gdjs.evtTools.storage.writeNumberInJSONFile("Status", userKey + "/Hearts", MAX_HEARTS);
         } catch (e) {}
-        localStorage.removeItem(REFILL_KEY);
-        toast("❤️ تم تجديد محاولاتك الخمس!");
+        localStorage.setItem(REFILL_KEY, today);
+        toast("❤️ يوم جديد! تم تجديد محاولاتك الخمس");
+      } else if (!day) {
+        localStorage.setItem(REFILL_KEY, today);
       }
     } catch (e) {}
   }
