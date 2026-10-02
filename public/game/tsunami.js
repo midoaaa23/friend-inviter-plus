@@ -387,11 +387,49 @@
       });
   }
 
+  /* ---------------- Daily hearts refill (every 24h) ---------------- */
+
+  var MAX_HEARTS = 5;
+  var REFILL_MS = 24 * 60 * 60 * 1000;
+  var REFILL_KEY = "tsunami_hearts_refill_at";
+
+  function refillTick() {
+    if (state.isDev) return;
+    try {
+      var game = window.__tsunamiGame;
+      if (!game) return;
+      var vars = game.getVariables();
+      var hearts = vars.get("CurrentHearts");
+      if (!hearts) return;
+      var n = hearts.getAsNumber();
+      var now = Date.now();
+      var at = Number(localStorage.getItem(REFILL_KEY) || 0);
+      if (n >= MAX_HEARTS) {
+        if (at) localStorage.removeItem(REFILL_KEY);
+        return;
+      }
+      if (!at) {
+        localStorage.setItem(REFILL_KEY, String(now + REFILL_MS));
+        return;
+      }
+      if (now >= at) {
+        hearts.setNumber(MAX_HEARTS);
+        try {
+          var userKey = vars.getFromIndex(7).getAsString();
+          gdjs.evtTools.storage.writeNumberInJSONFile("Status", userKey + "/Hearts", MAX_HEARTS);
+        } catch (e) {}
+        localStorage.removeItem(REFILL_KEY);
+        toast("❤️ تم تجديد محاولاتك الخمس!");
+      }
+    } catch (e) {}
+  }
+
   /* ---------------- boot ---------------- */
 
   function boot() {
     initTelegram();
     sync();
+    setInterval(refillTick, 1000);
     state.ready = true;
   }
 
