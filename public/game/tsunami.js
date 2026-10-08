@@ -417,7 +417,11 @@
         if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
         var entry = data[key];
         if (!entry || typeof entry !== "object") continue;
-        if (entry.Date !== today) {
+        if (!entry.Date) {
+          // First time we see this player: start counting from today
+          entry.Date = today;
+          changed = true;
+        } else if (entry.Date !== today) {
           if (typeof entry.Hearts === "number" && entry.Hearts <= 0) refilledEmpty = true;
           entry.Hearts = MAX_HEARTS;
           entry.Date = today;
