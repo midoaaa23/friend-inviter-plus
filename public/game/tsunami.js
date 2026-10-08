@@ -387,51 +387,83 @@
       });
   }
 
-  /* ---------------- Daily hearts refill (new calendar day) ---------------- */
+  /* ---------------- Daily hearts refill (every new calendar day, after midnight) ----------------
+   * The game saves hearts in localStorage "GDJS_Status" as { <playerKey>: { Hearts, Date, ... } }.
+   * Every second we check each saved player: if its Date is not today, hearts go back to 5.
+   * This works whether the player played or not, and even if the game stays open past midnight. */
 
   var MAX_HEARTS = 5;
-  var REFILL_KEY = "tsunami_hearts_day";
 
   function todayStr() {
+    // Same format the game itself uses: YYYY/M/D (local time)
     var d = new Date();
-    return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+    return d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate();
   }
 
   function refillTick() {
     if (state.isDev) return;
     try {
+      var raw = localStorage.getItem("GDJS_Status");
+      var data = {};
+      try {
+        data = raw ? JSON.parse(raw) || {} : {};
+      } catch (e) {
+        data = {};
+      }
+      var today = todayStr();
+      var changed = false;
+      var refilledEmpty = false;
+      for (var key in data) {
+        if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
+        var entry = data[key];
+        if (!entry || typeof entry !== "object") continue;
+        var dateStr = entry.Date && typeof entry.Date.str === "string" ? entry.Date.str : "";
+        if (!dateStr) {
+          // First time we see this player: start counting from today
+          entry.Date = { str: today };
+          changed = true;
+        } else if (dateStr !== today) {
+          var h = entry.Hearts && typeof entry.Hearts.value === "number" ? entry.Hearts.value : 0;
+          if (h <= 0) refilledEmpty = true;
+          entry.Hearts = { value: MAX_HEARTS };
+          entry.Date = { str: today };
+          changed = true;
+        }
+      }
+      if (!changed) return;
+      localStorage.setItem("GDJS_Status", JSON.stringify(data));
+
       var game = window.__tsunamiGame;
       if (!game) return;
       var vars = game.getVariables();
       var hearts = vars.get("CurrentHearts");
-      if (!hearts) return;
-      var n = hearts.getAsNumber();
-      var today = todayStr();
-      var day = localStorage.getItem(REFILL_KEY);
-      if (n >= MAX_HEARTS) {
-        if (day !== today) localStorage.setItem(REFILL_KEY, today);
-        return;
-      }
-      // Hearts are below max: refill automatically when a new day starts
-      if (day && day !== today) {
-        hearts.setNumber(MAX_HEARTS);
-        try {
-          var userKey = vars.getFromIndex(7).getAsString();
-          gdjs.evtTools.storage.writeNumberInJSONFile("Status", userKey + "/Hearts", MAX_HEARTS);
-        } catch (e) {}
-        localStorage.setItem(REFILL_KEY, today);
+      var wasEmpty = hearts && hearts.getAsNumber() <= 0;
+      if (hearts && hearts.getAsNumber() < MAX_HEARTS) hearts.setNumber(MAX_HEARTS);
+      var lpd = vars.get("LastPlayedDate");
+      if (lpd) lpd.setString(today);
+
+      if (wasEmpty || refilledEmpty) {
         toast("❤️ يوم جديد! تم تجديد محاولاتك الخمس");
-      } else if (!day) {
-        localStorage.setItem(REFILL_KEY, today);
+        // Reload the menu so the "Come back tomorrow" message disappears
+        try {
+          var scene = game.getSceneStack().getCurrentScene();
+          if (scene && scene.getName() === "Menu") {
+            gdjs.evtTools.runtimeScene.replaceScene(scene, "Menu", false);
+          }
+        } catch (e) {}
       }
     } catch (e) {}
   }
+
+  // Run once right away (before the game reads saved hearts), then every second
+  refillTick();
 
   /* ---------------- boot ---------------- */
 
   function boot() {
     initTelegram();
     sync();
+    refillTick();
     setInterval(refillTick, 1000);
     state.ready = true;
   }

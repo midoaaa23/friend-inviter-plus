@@ -379,7 +379,7 @@ gdjs.GameCode.eventsList4(runtimeScene);
 
 };gdjs.GameCode.asyncCallback18796652 = function (runtimeScene, asyncObjectsList) {
 asyncObjectsList.restoreLocalVariablesContainers(gdjs.GameCode.localVariables);
-{gdjs.evtTools.runtimeScene.replaceScene(runtimeScene, "Leaderboard", false);
+{gdjs.evtTools.runtimeScene.replaceScene(runtimeScene, "Game", false);
 }
 gdjs.GameCode.localVariables.length = 0;
 }
