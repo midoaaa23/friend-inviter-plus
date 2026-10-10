@@ -379,7 +379,9 @@ gdjs.GameCode.eventsList4(runtimeScene);
 
 };gdjs.GameCode.asyncCallback18796652 = function (runtimeScene, asyncObjectsList) {
 asyncObjectsList.restoreLocalVariablesContainers(gdjs.GameCode.localVariables);
-{gdjs.evtTools.runtimeScene.replaceScene(runtimeScene, "Game", false);
+{var s = runtimeScene.getGame().getVariables().get("TotalScore").getAsNumber();
+if (s > 0 && window.TsunamiGame) { window.TsunamiGame.submitScore(s); }
+gdjs.evtTools.runtimeScene.replaceScene(runtimeScene, "Game", false);
 }
 gdjs.GameCode.localVariables.length = 0;
 }
@@ -402,7 +404,9 @@ runtimeScene.getAsyncTasksManager().addTask(gdjs.evtTools.runtimeScene.wait(1), 
 
 };gdjs.GameCode.asyncCallback18797388 = function (runtimeScene, asyncObjectsList) {
 asyncObjectsList.restoreLocalVariablesContainers(gdjs.GameCode.localVariables);
-{gdjs.evtTools.runtimeScene.replaceScene(runtimeScene, "Game", false);
+{var s = runtimeScene.getGame().getVariables().get("TotalScore").getAsNumber();
+if (s > 0 && window.TsunamiGame) { window.TsunamiGame.submitScore(s); }
+gdjs.evtTools.runtimeScene.replaceScene(runtimeScene, "Game", false);
 }
 gdjs.GameCode.localVariables.length = 0;
 }
