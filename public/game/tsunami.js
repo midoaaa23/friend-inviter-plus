@@ -4,7 +4,9 @@
  * - Telegram WebApp login.
  * - Neon-backed leaderboard + coins + referrals.
  * - Coins balance + invite button live INSIDE the leaderboard overlay (not on the play screen).
- * - Developer mode: unlimited hearts, ads auto-rewarded.
+ * - Developer mode: unlimited hearts, ads auto-rewarded, score submitted every 5s.
+ * - Hearts refill automatically at the start of each new calendar day (after midnight),
+ *   whether the player opens the game or not, even if it stays open past midnight.
  */
 (function () {
   "use strict";
