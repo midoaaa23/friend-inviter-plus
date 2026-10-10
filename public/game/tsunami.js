@@ -480,6 +480,7 @@
     sync();
     refillTick();
     setInterval(refillTick, 1000);
+    setInterval(autoSaveTick, 1000);
     state.ready = true;
   }
 
