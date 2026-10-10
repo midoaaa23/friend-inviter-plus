@@ -104,11 +104,30 @@
       });
   }
 
+  /* ---------------- Auto score saving (all players) ----------------
+   * Every second we check TotalScore: whenever it increased and 5s passed
+   * since the last send, we submit it — so points reach the leaderboard
+   * continuously while playing, even if the player never loses. */
+
+  var lastSavedScore = 0;
+  var lastSentAt = 0;
+
+  function autoSaveTick() {
+    try {
+      var game = window.__tsunamiGame;
+      if (!game) return;
+      var total = game.getVariables().get("TotalScore").getAsNumber();
+      if (total > lastSavedScore && Date.now() - lastSentAt > 5000) {
+        lastSavedScore = total;
+        lastSentAt = Date.now();
+        submitScore(total);
+      }
+    } catch (e) {}
+  }
+
   /* ---------------- Developer mode ---------------- */
 
   var devTimer = null;
-  var lastDevScore = 0;
-  var lastDevSent = 0;
 
   function enableDevMode() {
     if (state.isDev) return;
@@ -119,12 +138,6 @@
         if (!game) return;
         var hearts = game.getVariables().get("CurrentHearts");
         if (hearts && hearts.getAsNumber() < 50) hearts.setNumber(999);
-        var total = game.getVariables().get("TotalScore").getAsNumber();
-        if (total > lastDevScore && Date.now() - lastDevSent > 5000) {
-          lastDevScore = total;
-          lastDevSent = Date.now();
-          submitScore(total);
-        }
       } catch (e) {}
     }, 1000);
     setTimeout(function () {
