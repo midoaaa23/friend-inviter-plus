@@ -70,7 +70,7 @@
   }
 
   function sync() {
-    if (!state.initData) return Promise.resolve(null);
+    if (!ensureInitData()) return Promise.resolve(null);
     return post("/sync", { initData: state.initData, ref: referralCode() })
       .then(function (profile) {
         state.profile = profile;
