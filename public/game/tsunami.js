@@ -70,7 +70,7 @@
   }
 
   function sync() {
-    if (!state.initData) return Promise.resolve(null);
+    if (!ensureInitData()) return Promise.resolve(null);
     return post("/sync", { initData: state.initData, ref: referralCode() })
       .then(function (profile) {
         state.profile = profile;
@@ -87,43 +87,72 @@
       });
   }
 
+  var warnedNoTelegram = false;
+  var warnedFail = false;
+
+  function ensureInitData() {
+    // Telegram may fill initData slightly after boot: always re-read it.
+    if (!state.initData) {
+      var w = tg();
+      if (w && w.initData) initTelegram();
+    }
+    return state.initData;
+  }
+
   function submitScore(score) {
-    if (!state.initData || !score) return Promise.resolve(null);
+    if (!score) return Promise.resolve(null);
+    if (!ensureInitData()) {
+      if (!warnedNoTelegram) {
+        warnedNoTelegram = true;
+        toast("⚠️ النقاط لا تُحفظ إلا عند فتح اللعبة من زر البوت داخل تليجرام");
+      }
+      return Promise.resolve(null);
+    }
     return post("/score", { initData: state.initData, score: Number(score) || 0 })
       .then(function (data) {
-        if (state.profile) {
-          state.profile.coins = data.coins;
-          state.profile.bestScore = data.bestScore;
-          state.profile.points = data.points;
-        }
+        if (!state.profile) state.profile = {};
+        state.profile.coins = data.coins;
+        state.profile.bestScore = data.bestScore;
+        state.profile.points = data.points;
+        warnedFail = false;
         renderCoins();
         return data;
       })
       .catch(function (err) {
         console.warn("score failed", err);
+        if (!warnedFail) {
+          warnedFail = true;
+          toast("⚠️ تعذر حفظ النقاط: " + (err && err.message ? err.message : "خطأ في الاتصال"));
+        }
         return null;
       });
   }
 
   /* ---------------- Auto score saving (all players) ----------------
-   * Every second we check TotalScore: whenever it increased and 5s passed
-   * since the last send, we submit it — so points reach the leaderboard
-   * continuously while playing, even if the player never loses. */
+   * Every second we check TotalScore: whenever it is higher than the last
+   * successfully saved value and 5s passed since the last attempt, we submit it.
+   * Failed sends are retried on the next tick (lastSavedScore only moves on success). */
 
   var lastSavedScore = 0;
   var lastSentAt = 0;
+  var sending = false;
 
   function autoSaveTick() {
     try {
       var game = window.__tsunamiGame;
-      if (!game) return;
+      if (!game || sending) return;
       var total = game.getVariables().get("TotalScore").getAsNumber();
       if (total > lastSavedScore && Date.now() - lastSentAt > 5000) {
-        lastSavedScore = total;
         lastSentAt = Date.now();
-        submitScore(total);
+        sending = true;
+        submitScore(total).then(function (data) {
+          sending = false;
+          if (data) lastSavedScore = total;
+        });
       }
-    } catch (e) {}
+    } catch (e) {
+      sending = false;
+    }
   }
 
   /* ---------------- Developer mode ---------------- */
