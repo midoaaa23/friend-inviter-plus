@@ -434,11 +434,9 @@
         var entry = data[key];
         if (!entry || typeof entry !== "object") continue;
         var dateStr = entry.Date && typeof entry.Date.str === "string" ? entry.Date.str : "";
-        if (!dateStr) {
-          // First time we see this player: start counting from today
-          entry.Date = { str: today };
-          changed = true;
-        } else if (dateStr !== today) {
+        // No saved date (the in-game save never writes it under the Telegram key)
+        // or a date from a previous day => new day: refill hearts.
+        if (dateStr !== today) {
           var h = entry.Hearts && typeof entry.Hearts.value === "number" ? entry.Hearts.value : 0;
           if (h <= 0) refilledEmpty = true;
           entry.Hearts = { value: MAX_HEARTS };
