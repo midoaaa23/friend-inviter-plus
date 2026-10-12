@@ -624,8 +624,10 @@ for(var i = 0, len = gdjs.GameCode.GDCoinObjects1.length ;i < len;++i) {
 
 };gdjs.GameCode.userFunc0xac5438 = function GDJSInlineCode(runtimeScene) {
 "use strict";
+// Runs every frame: only send when the total actually changed (once per run end).
 var playerScore = runtimeScene.getGame().getVariables().get("TotalScore").getAsNumber();
-if (playerScore > 0 && window.TsunamiGame) {
+if (playerScore > 0 && window.TsunamiGame && window.__tsunamiLastFrameScore !== playerScore) {
+  window.__tsunamiLastFrameScore = playerScore;
   window.TsunamiGame.submitScore(playerScore);
 }
 
