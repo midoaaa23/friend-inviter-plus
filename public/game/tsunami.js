@@ -4,7 +4,7 @@
  * - Telegram WebApp login.
  * - Neon-backed leaderboard + coins + referrals.
  * - Coins balance + invite button live INSIDE the leaderboard overlay (not on the play screen).
- * - Scores are saved continuously: every 5s while playing (all players) and on game over.
+ * - Scores: each finished round's points are ADDED to the player's total on the server (queued + retried).
  * - Developer mode: unlimited hearts, ads auto-rewarded.
  * - Hearts refill automatically at the start of each new calendar day (after midnight),
  *   whether the player opens the game or not, even if it stays open past midnight.
@@ -99,60 +99,85 @@
     return state.initData;
   }
 
-  function submitScore(score) {
-    if (!score) return Promise.resolve(null);
+  /* ---------------- Score saving (per finished round) ----------------
+   * When a round ends the game calls addRoundScore(points of that round).
+   * Each round gets a unique id and is queued in localStorage, then sent to the
+   * server which ADDS it to the player's total (duplicates are ignored server-side).
+   * Failed sends stay in the queue and are retried every few seconds. */
+
+  var QUEUE_KEY = "tsunami_pending_rounds";
+  var flushing = false;
+
+  function loadQueue() {
+    try {
+      var q = JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
+      return Array.isArray(q) ? q : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveQueue(q) {
+    try {
+      localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+    } catch (e) {}
+  }
+
+  function addRoundScore(score) {
+    score = Math.floor(Number(score) || 0);
+    if (score <= 0) return;
+    var q = loadQueue();
+    q.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), score: score });
+    saveQueue(q);
+    flushQueue();
+  }
+
+  function flushQueue() {
+    if (flushing) return;
+    var q = loadQueue();
+    if (!q.length) return;
     if (!ensureInitData()) {
       if (!warnedNoTelegram) {
         warnedNoTelegram = true;
         toast("⚠️ النقاط لا تُحفظ إلا عند فتح اللعبة من زر البوت داخل تليجرام");
       }
-      return Promise.resolve(null);
+      return;
     }
-    return post("/score", { initData: state.initData, score: Number(score) || 0 })
+    flushing = true;
+    var item = q[0];
+    post("/round", { initData: state.initData, roundId: item.id, score: item.score })
       .then(function (data) {
+        var rest = loadQueue().filter(function (r) {
+          return r.id !== item.id;
+        });
+        saveQueue(rest);
         if (!state.profile) state.profile = {};
         state.profile.coins = data.coins;
         state.profile.bestScore = data.bestScore;
         state.profile.points = data.points;
         warnedFail = false;
         renderCoins();
-        return data;
+        flushing = false;
+        if (rest.length) flushQueue();
       })
       .catch(function (err) {
-        console.warn("score failed", err);
+        flushing = false;
+        console.warn("round save failed", err);
         if (!warnedFail) {
           warnedFail = true;
           toast("⚠️ تعذر حفظ النقاط: " + (err && err.message ? err.message : "خطأ في الاتصال"));
         }
-        return null;
       });
   }
 
-  /* ---------------- Auto score saving (all players) ----------------
-   * Every second we check TotalScore: whenever it is higher than the last
-   * successfully saved value and 5s passed since the last attempt, we submit it.
-   * Failed sends are retried on the next tick (lastSavedScore only moves on success). */
-
-  var lastSavedScore = 0;
-  var lastSentAt = 0;
-  var sending = false;
+  /** Kept for older game code: totals are now saved per round, so this just retries the queue. */
+  function submitScore() {
+    flushQueue();
+    return Promise.resolve(null);
+  }
 
   function autoSaveTick() {
-    try {
-      var game = window.__tsunamiGame;
-      if (!game || sending) return;
-      var total = game.getVariables().get("TotalScore").getAsNumber();
-      if (total > lastSavedScore && Date.now() - lastSentAt > 5000) {
-        lastSentAt = Date.now();
-        sending = true;
-        submitScore(total).then(function (data) {
-          sending = false;
-          if (data) lastSavedScore = total;
-        });
-      }
-    } catch (e) {
-      sending = false;
-    }
+    flushQueue();
   }
 
   /* ---------------- Developer mode ---------------- */
@@ -315,8 +340,8 @@
     top.appendChild(coinsEl);
 
     var pts = document.createElement("div");
-    var score = state.profile ? state.profile.bestScore : 0;
-    pts.textContent = "⭐ نقاطك: " + score;
+    var score = state.profile ? state.profile.points || 0 : 0;
+    pts.textContent = "⭐ مجموع نقاطك: " + score;
     css(pts, { fontWeight: "600" });
 
     var inviteBtn = document.createElement("button");
@@ -529,6 +554,7 @@
   window.TsunamiGame = {
     showRewarded: showRewarded,
     submitScore: submitScore,
+    addRoundScore: addRoundScore,
     showLeaderboard: showLeaderboard,
     invite: invite,
     sync: sync,

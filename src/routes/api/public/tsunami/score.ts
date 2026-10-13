@@ -26,13 +26,14 @@ export const Route = createFileRoute("/api/public/tsunami/score")({
           await ensureSchema();
           const sql = getSql();
 
+          // Legacy endpoint (older cached game versions). Totals are now added per round
+          // via /round; this only keeps the player row and name up to date.
+          void score;
           await sql`
-            INSERT INTO players (telegram_id, username, first_name, referral_code, best_score, points)
-            VALUES (${user.id}::bigint, ${user.name}, ${user.name}, ${user.id}, ${score}, ${score})
+            INSERT INTO players (telegram_id, username, first_name, referral_code)
+            VALUES (${user.id}::bigint, ${user.name}, ${user.name}, ${user.id})
             ON CONFLICT (telegram_id) DO UPDATE SET
               username = EXCLUDED.username,
-              best_score = GREATEST(players.best_score, EXCLUDED.best_score),
-              points = GREATEST(players.points, EXCLUDED.best_score),
               updated_at = now()
           `;
 
