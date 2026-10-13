@@ -4,7 +4,7 @@
  * - Telegram WebApp login.
  * - Neon-backed leaderboard + coins + referrals.
  * - Coins balance + invite button live INSIDE the leaderboard overlay (not on the play screen).
- * - Scores are saved continuously: every 5s while playing (all players) and on game over.
+ * - Scores: each finished round's points are ADDED to the player's total on the server (queued + retried).
  * - Developer mode: unlimited hearts, ads auto-rewarded.
  * - Hearts refill automatically at the start of each new calendar day (after midnight),
  *   whether the player opens the game or not, even if it stays open past midnight.
@@ -340,8 +340,8 @@
     top.appendChild(coinsEl);
 
     var pts = document.createElement("div");
-    var score = state.profile ? state.profile.bestScore : 0;
-    pts.textContent = "⭐ نقاطك: " + score;
+    var score = state.profile ? state.profile.points || 0 : 0;
+    pts.textContent = "⭐ مجموع نقاطك: " + score;
     css(pts, { fontWeight: "600" });
 
     var inviteBtn = document.createElement("button");
@@ -554,6 +554,7 @@
   window.TsunamiGame = {
     showRewarded: showRewarded,
     submitScore: submitScore,
+    addRoundScore: addRoundScore,
     showLeaderboard: showLeaderboard,
     invite: invite,
     sync: sync,
