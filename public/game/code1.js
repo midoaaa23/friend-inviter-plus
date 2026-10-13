@@ -624,11 +624,14 @@ for(var i = 0, len = gdjs.GameCode.GDCoinObjects1.length ;i < len;++i) {
 
 };gdjs.GameCode.userFunc0xac5438 = function GDJSInlineCode(runtimeScene) {
 "use strict";
-// Runs every frame: only send when the total actually changed (once per run end).
-var playerScore = runtimeScene.getGame().getVariables().get("TotalScore").getAsNumber();
-if (playerScore > 0 && window.TsunamiGame && window.__tsunamiLastFrameScore !== playerScore) {
-  window.__tsunamiLastFrameScore = playerScore;
-  window.TsunamiGame.submitScore(playerScore);
+// Runs every frame: when the round ends (GameOver), send this round's points ONCE.
+var sv = runtimeScene.getScene().getVariables();
+if (sv.get("GameState").getAsString() === "GameOver" && !runtimeScene.__tsunamiRoundSent) {
+  runtimeScene.__tsunamiRoundSent = true;
+  var roundScore = sv.get("Coins").getAsNumber();
+  if (roundScore > 0 && window.TsunamiGame && window.TsunamiGame.addRoundScore) {
+    window.TsunamiGame.addRoundScore(roundScore);
+  }
 }
 
 

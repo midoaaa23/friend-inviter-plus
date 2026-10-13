@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPublicTsunamiLeaderboardRouteImport } from './routes/api/public/tsunami/leaderboard'
+import { Route as ApiPublicTsunamiRoundRouteImport } from './routes/api/public/tsunami/round'
 import { Route as ApiPublicTsunamiScoreRouteImport } from './routes/api/public/tsunami/score'
 import { Route as ApiPublicTsunamiSyncRouteImport } from './routes/api/public/tsunami/sync'
 
@@ -25,6 +26,11 @@ const ApiPublicTsunamiLeaderboardRoute =
     path: '/api/public/tsunami/leaderboard',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicTsunamiRoundRoute = ApiPublicTsunamiRoundRouteImport.update({
+  id: '/api/public/tsunami/round',
+  path: '/api/public/tsunami/round',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTsunamiScoreRoute = ApiPublicTsunamiScoreRouteImport.update({
   id: '/api/public/tsunami/score',
   path: '/api/public/tsunami/score',
@@ -39,12 +45,14 @@ const ApiPublicTsunamiSyncRoute = ApiPublicTsunamiSyncRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/public/tsunami/leaderboard': typeof ApiPublicTsunamiLeaderboardRoute
+  '/api/public/tsunami/round': typeof ApiPublicTsunamiRoundRoute
   '/api/public/tsunami/score': typeof ApiPublicTsunamiScoreRoute
   '/api/public/tsunami/sync': typeof ApiPublicTsunamiSyncRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/public/tsunami/leaderboard': typeof ApiPublicTsunamiLeaderboardRoute
+  '/api/public/tsunami/round': typeof ApiPublicTsunamiRoundRoute
   '/api/public/tsunami/score': typeof ApiPublicTsunamiScoreRoute
   '/api/public/tsunami/sync': typeof ApiPublicTsunamiSyncRoute
 }
@@ -52,6 +60,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/public/tsunami/leaderboard': typeof ApiPublicTsunamiLeaderboardRoute
+  '/api/public/tsunami/round': typeof ApiPublicTsunamiRoundRoute
   '/api/public/tsunami/score': typeof ApiPublicTsunamiScoreRoute
   '/api/public/tsunami/sync': typeof ApiPublicTsunamiSyncRoute
 }
@@ -60,18 +69,21 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/api/public/tsunami/leaderboard'
+    | '/api/public/tsunami/round'
     | '/api/public/tsunami/score'
     | '/api/public/tsunami/sync'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/api/public/tsunami/leaderboard'
+    | '/api/public/tsunami/round'
     | '/api/public/tsunami/score'
     | '/api/public/tsunami/sync'
   id:
     | '__root__'
     | '/'
     | '/api/public/tsunami/leaderboard'
+    | '/api/public/tsunami/round'
     | '/api/public/tsunami/score'
     | '/api/public/tsunami/sync'
   fileRoutesById: FileRoutesById
@@ -79,6 +91,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiPublicTsunamiLeaderboardRoute: typeof ApiPublicTsunamiLeaderboardRoute
+  ApiPublicTsunamiRoundRoute: typeof ApiPublicTsunamiRoundRoute
   ApiPublicTsunamiScoreRoute: typeof ApiPublicTsunamiScoreRoute
   ApiPublicTsunamiSyncRoute: typeof ApiPublicTsunamiSyncRoute
 }
@@ -97,6 +110,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/tsunami/leaderboard'
       fullPath: '/api/public/tsunami/leaderboard'
       preLoaderRoute: typeof ApiPublicTsunamiLeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/tsunami/round': {
+      id: '/api/public/tsunami/round'
+      path: '/api/public/tsunami/round'
+      fullPath: '/api/public/tsunami/round'
+      preLoaderRoute: typeof ApiPublicTsunamiRoundRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/tsunami/score': {
@@ -119,6 +139,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiPublicTsunamiLeaderboardRoute: ApiPublicTsunamiLeaderboardRoute,
+  ApiPublicTsunamiRoundRoute: ApiPublicTsunamiRoundRoute,
   ApiPublicTsunamiScoreRoute: ApiPublicTsunamiScoreRoute,
   ApiPublicTsunamiSyncRoute: ApiPublicTsunamiSyncRoute,
 }
