@@ -457,24 +457,29 @@
       }
       var today = todayStr();
       var changed = false;
-      var refilledEmpty = false;
+      var refilled = false;
       for (var key in data) {
         if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
         var entry = data[key];
         if (!entry || typeof entry !== "object") continue;
         var dateStr = entry.Date && typeof entry.Date.str === "string" ? entry.Date.str : "";
-        // No saved date (the in-game save never writes it under the Telegram key)
-        // or a date from a previous day => new day: refill hearts.
-        if (dateStr !== today) {
-          var h = entry.Hearts && typeof entry.Hearts.value === "number" ? entry.Hearts.value : 0;
-          if (h <= 0) refilledEmpty = true;
-          entry.Hearts = { value: MAX_HEARTS };
+        if (dateStr === today) continue;
+        if (dateStr === "") {
+          // The in-game save writes Hearts without a date: just stamp today,
+          // do NOT refill (otherwise hearts would reset to 5 after every loss).
           entry.Date = { str: today };
           changed = true;
+          continue;
         }
+        // A date from a previous day => new day: refill hearts.
+        entry.Hearts = { value: MAX_HEARTS };
+        entry.Date = { str: today };
+        changed = true;
+        refilled = true;
       }
       if (!changed) return;
       localStorage.setItem("GDJS_Status", JSON.stringify(data));
+      if (!refilled) return;
 
       var game = window.__tsunamiGame;
       if (!game) return;
@@ -485,7 +490,7 @@
       var lpd = vars.get("LastPlayedDate");
       if (lpd) lpd.setString(today);
 
-      if (wasEmpty || refilledEmpty) {
+      if (wasEmpty || refilled) {
         toast("❤️ يوم جديد! تم تجديد محاولاتك الخمس");
         // Reload the menu so the "Come back tomorrow" message disappears
         try {
