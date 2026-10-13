@@ -41,6 +41,16 @@ export async function ensureSchema() {
         )
       `;
       await sql`CREATE INDEX IF NOT EXISTS players_best_score_idx ON players (best_score DESC)`;
+      await sql`CREATE INDEX IF NOT EXISTS players_points_idx ON players (points DESC)`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS score_rounds (
+          telegram_id bigint NOT NULL,
+          round_id text NOT NULL,
+          score integer NOT NULL,
+          created_at timestamptz NOT NULL DEFAULT now(),
+          PRIMARY KEY (telegram_id, round_id)
+        )
+      `;
     })().catch((error) => {
       schemaReady = null;
       throw error;

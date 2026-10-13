@@ -12,17 +12,18 @@ export const Route = createFileRoute("/api/public/tsunami/leaderboard")({
           const rows = (await sql`
             SELECT telegram_id,
                    COALESCE(NULLIF(username, ''), NULLIF(first_name, ''), 'Player') AS name,
-                   best_score, coins
+                   points, coins
             FROM players
-            ORDER BY best_score DESC, coins DESC
+            WHERE points > 0
+            ORDER BY points DESC, coins DESC
             LIMIT 50
-          `) as Array<{ telegram_id: string; name: string; best_score: number; coins: string }>;
+          `) as Array<{ telegram_id: string; name: string; points: number; coins: string }>;
 
           return Response.json({
             players: rows.map((r) => ({
               id: String(r.telegram_id),
               name: r.name,
-              score: Number(r.best_score),
+              score: Number(r.points),
               coins: Number(r.coins),
             })),
           });
